@@ -39,7 +39,7 @@ export function getWeaponStats(url: string, weaponList: ItemReference) {
         let weapon = new ItemStats(weaponName);
 
         weapon.stats.push(...getCoreStats($));
-        weapon.stats = weapon.stats.concat(getOtherStats($));
+        weapon.stats.push(...getOtherStats($));
 
         console.log(weapon);
     })
