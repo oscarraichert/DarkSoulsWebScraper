@@ -1,4 +1,4 @@
-export class WeaponReference {
+export class ItemReference {
     title: string;
     href: string;
 

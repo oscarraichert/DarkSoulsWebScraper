@@ -1,14 +1,15 @@
 import axios from "axios";
 import * as CHEERIO from 'cheerio';
-import { WeaponReference } from "../models/weapon-reference.model";
+import { ItemReference } from "../models/item-reference.model";
 import util from 'util';
 import { Stat } from "../models/stat.model";
+import { ItemStats } from "../models/item-stats.model";
 
 const AXIOS = axios.create();
 
 export function getWeaponsList(url: string): any[] {
 
-    const weaponsList: WeaponReference[] = [];
+    const weaponsList: ItemReference[] = [];
 
     AXIOS.get(url).then(
         response => {
@@ -18,7 +19,7 @@ export function getWeaponsList(url: string): any[] {
 
             weaponsTable.each(((i, elem) => {
                 const weaponAttribs = $(elem).attr();
-                let wr = new WeaponReference(weaponAttribs.title, weaponAttribs.href)
+                let wr = new ItemReference(weaponAttribs.title, weaponAttribs.href)
                 weaponsList.push(wr);
                 //console.log(util.inspect(weaponsList, { maxArrayLength: null }));
             }));
@@ -28,7 +29,7 @@ export function getWeaponsList(url: string): any[] {
     return weaponsList;
 }
 
-export function getWeaponStats(url: string, weaponList: WeaponReference) {
+export function getWeaponStats(url: string, weaponList: ItemReference) {
 
     AXIOS.get(url + weaponList.href).then(response => {
         const html = response.data;
@@ -36,15 +37,19 @@ export function getWeaponStats(url: string, weaponList: WeaponReference) {
         const weaponName = $('aside > h2').contents().text();
         const weaponStats = $('aside > section > table > tbody td');
 
+        let weapon = new ItemStats(weaponName);
+
         weaponStats.each(((i, elem) => {
             let statName = $(elem).attr('data-source');
             let statValue = $(elem).contents().text();
             let stat = new Stat(statName, statValue);
-            console.log(stat);
+
+            weapon.stats.push(stat);
+            //console.log(stat);
         }));
         //weaponStats.contents();
 
-        //console.log(weaponStats);
+        console.log(weapon);
     })
     .catch(console.error);
 }
