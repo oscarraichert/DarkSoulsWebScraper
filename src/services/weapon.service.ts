@@ -13,18 +13,16 @@ export function getWeaponsList(url: string): any[] {
         response => {
             const html = response.data;
             const $ = CHEERIO.load(html);
-            const weaponsTable = $('div.category-page__members > div.category-page__members-wrapper li > a');
+            const weaponsTable = $('table li > a');
 
             weaponsTable.each(((i, elem) => {
                 const weaponAttribs = $(elem).attr();
                 let wr = new WeaponReference(weaponAttribs.title, weaponAttribs.href)
                 weaponsList.push(wr);
-                console.log(util.inspect(weaponsList, { maxArrayLength: null }));                
+                console.log(util.inspect(weaponsList, { maxArrayLength: null }));
             }));
         })
         .catch(console.error);
-
-        console.dir(weaponsList, {'maxArrayLength': null});
 
     return weaponsList;
 }
