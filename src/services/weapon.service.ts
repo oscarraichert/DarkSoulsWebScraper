@@ -35,21 +35,47 @@ export function getWeaponStats(url: string, weaponList: ItemReference) {
         const html = response.data;
         const $ = CHEERIO.load(html);
         const weaponName = $('aside > h2').contents().text();
-        const weaponStats = $('aside > section > table > tbody td');
 
         let weapon = new ItemStats(weaponName);
 
-        weaponStats.each(((i, elem) => {
-            let statName = $(elem).attr('data-source');
-            let statValue = $(elem).contents().text();
-            let stat = new Stat(statName, statValue);
-
-            weapon.stats.push(stat);
-            //console.log(stat);
-        }));
-        //weaponStats.contents();
+        weapon.stats.push(...getCoreStats($));
+        weapon.stats = weapon.stats.concat(getOtherStats($));
 
         console.log(weapon);
     })
-    .catch(console.error);
+        .catch(console.error);
+}
+
+function getOtherStats($: CHEERIO.CheerioAPI) {
+
+    const weaponOtherStats = $('aside[role=region] > div');
+    let stats: Stat[] = [];
+
+    weaponOtherStats.each(((i, elem) => {
+        let statName = $(elem).attr('data-source');
+        let statValue = $(elem).find('div').contents().text();
+
+        if (statName != 'found') {
+            let stat = new Stat(statName, statValue);
+            stats.push(stat);
+        }
+    }));
+
+    return stats;
+}
+
+function getCoreStats($: CHEERIO.CheerioAPI): Stat[] {
+
+    const weaponCoreStats = $('aside > section > table > tbody td');
+    let stats: Stat[] = [];
+
+    weaponCoreStats.each(((i, elem) => {
+        let statName = $(elem).attr('data-source');
+        let statValue = $(elem).contents().text();
+        let stat = new Stat(statName, statValue);
+
+        stats.push(stat);
+    }));
+
+    return stats;
 }
