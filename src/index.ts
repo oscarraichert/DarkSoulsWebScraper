@@ -6,8 +6,14 @@ import { ItemReference } from './models/item-reference.model';
 const URL = 'https://darksouls.fandom.com';
 const CATEGORY_WEAPONS = '/wiki/Weapons_(Dark_Souls)';
 
-weaponService.getWeaponsList(URL + CATEGORY_WEAPONS);
+async function runScraper() {
 
-let daggerRef = new ItemReference('Dagger', '/wiki/Dagger')
+    const weaponList = await weaponService.getWeaponsReferenceList(URL + CATEGORY_WEAPONS);
 
-weaponService.getWeaponStats(URL, daggerRef);
+    const weaponsStatss = await weaponService.getWeaponStats(URL, weaponList);
+
+    const util = require('util');
+    console.log(util.inspect(weaponsStatss, false, null, true));
+}
+
+runScraper();
