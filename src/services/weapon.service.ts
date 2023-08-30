@@ -5,30 +5,11 @@ import { Stat } from "../models/stat.model";
 import { ItemStats } from "../models/item-stats.model";
 
 const AXIOS = axios.create();
+const CATEGORY_WEAPONS = '/wiki/Weapons_(Dark_Souls)';
 
-export async function getWeaponsReferenceList(url: string): Promise<ItemReference[]> {
+export async function getWeaponStats(url: string): Promise<ItemStats[]> {
 
-  const weaponsList: ItemReference[] = [];
-
-  await AXIOS.get(url).then(
-    response => {
-      const html = response.data;
-      const $ = CHEERIO.load(html);
-      const weaponsTable = $('table li > a');
-
-      weaponsTable.each(((_, elem) => {
-        const weaponAttribs = $(elem).attr();
-        let wr = new ItemReference(weaponAttribs.title, weaponAttribs.href)
-        weaponsList.push(wr);
-      }));
-    })
-    .catch(console.error);
-
-  return weaponsList;
-}
-
-export async function getWeaponStats(url: string, weaponList: ItemReference[]): Promise<ItemStats[]> {
-
+  const weaponList = await getWeaponsReferenceList(url);
   const weapons: ItemStats[] = [];
 
   for (const item of weaponList) {
@@ -51,6 +32,27 @@ export async function getWeaponStats(url: string, weaponList: ItemReference[]): 
   }
 
   return weapons;
+}
+
+async function getWeaponsReferenceList(url: string): Promise<ItemReference[]> {
+
+  const weaponsList: ItemReference[] = [];
+
+  await AXIOS.get(url + CATEGORY_WEAPONS).then(
+    response => {
+      const html = response.data;
+      const $ = CHEERIO.load(html);
+      const weaponsTable = $('table li > a');
+
+      weaponsTable.each(((_, elem) => {
+        const weaponAttribs = $(elem).attr();
+        let wr = new ItemReference(weaponAttribs.title, weaponAttribs.href)
+        weaponsList.push(wr);
+      }));
+    })
+    .catch(console.error);
+
+  return weaponsList;
 }
 
 function getOtherStats($: CHEERIO.CheerioAPI): Stat[] {
