@@ -2,89 +2,102 @@ import axios from "axios";
 import * as CHEERIO from 'cheerio';
 import { ItemReference } from "../models/item-reference.model";
 import { Stat } from "../models/stat.model";
-import { ItemStats } from "../models/item-stats.model";
+import { connect } from "mongoose";
+import { ItemReferenceModel } from "../database/schemas/item-reference.schema";
+import { Weapon } from "../models/weapon.model";
+import { WeaponModel } from "../database/schemas/weapon.schema";
 
 const AXIOS = axios.create();
-const CATEGORY_WEAPONS = '/wiki/Weapons_(Dark_Souls)';
+const URL = 'https://darksouls.fandom.com';
+const CATEGORY = '/wiki/Weapons_(Dark_Souls)'
 
-export async function getWeaponStats(url: string): Promise<ItemStats[]> {
+export class WeaponService {
 
-  const weaponList = await getWeaponsReferenceList(url);
-  const weapons: ItemStats[] = [];
-
-  for (const item of weaponList) {
-
-    const weapon = await AXIOS.get(url + item.href).then(response => {
-      const html = response.data;
-      const $ = CHEERIO.load(html);
-      const weaponName = $('aside > h2').contents().text();
-
-      let weapon = new ItemStats(weaponName);
-
-      weapon.stats.push(...getCoreStats($));
-
-      weapon.stats.push(...getOtherStats($));
-
-      return weapon;
-    });
-
-    weapons.push(weapon);
+  constructor() {
+    connect('mongodb://localhost:27017');
   }
 
-  return weapons;
-}
+  async getWeaponStats(): Promise<Weapon[]> {
 
-async function getWeaponsReferenceList(url: string): Promise<ItemReference[]> {
+    const weaponList = await this.getWeaponsReferenceList();
+    const weapons: Weapon[] = [];
 
-  const weaponsList: ItemReference[] = [];
+    for (const item of weaponList) {
 
-  await AXIOS.get(url + CATEGORY_WEAPONS).then(
-    response => {
-      const html = response.data;
-      const $ = CHEERIO.load(html);
-      const weaponsTable = $('table li > a');
+      const weapon = await AXIOS.get(URL + item.href).then(response => {
+        const html = response.data;
+        const $ = CHEERIO.load(html);
+        const weaponName = $('aside > h2').contents().text();
 
-      weaponsTable.each(((_, elem) => {
-        const weaponAttribs = $(elem).attr();
-        let wr = new ItemReference(weaponAttribs.title, weaponAttribs.href)
-        weaponsList.push(wr);
-      }));
-    })
-    .catch(console.error);
+        let weapon = new WeaponModel({ name: weaponName });
 
-  return weaponsList;
-}
+        weapon.stats.push(...this.getCoreStats($));
 
-function getOtherStats($: CHEERIO.CheerioAPI): Stat[] {
+        weapon.stats.push(...this.getOtherStats($));
 
-  const weaponOtherStats = $('aside[role=region] > div');
-  let stats: Stat[] = [];
+        weapon.save();
+        return weapon;
+      });
 
-  weaponOtherStats.each(((_, elem) => {
-    let statName = $(elem).attr('data-source');
-    let statValue = $(elem).find('div').contents().text();
-
-    if (statName != 'found' && statName != 'notes') {
-      let stat = new Stat(statName, statValue);
-      stats.push(stat);
+      weapons.push(weapon);
     }
-  }));
 
-  return stats;
-}
+    return weapons;
+  }
 
-function getCoreStats($: CHEERIO.CheerioAPI): Stat[] {
+  async getWeaponsReferenceList(): Promise<ItemReference[]> {
 
-  const weaponCoreStats = $('aside > section > table > tbody td');
-  let stats: Stat[] = [];
+    const weaponsList: ItemReference[] = [];
 
-  weaponCoreStats.each(((_, elem) => {
-    let statName = $(elem).attr('data-source');
-    let statValue = $(elem).contents().text();
-    let stat = new Stat(statName, statValue);
+    await AXIOS.get(URL + CATEGORY).then(
+      response => {
+        const html = response.data;
+        const $ = CHEERIO.load(html);
+        const weaponsTable = $('table li > a');
 
-    stats.push(stat);
-  }));
+        weaponsTable.each(((_, elem) => {
+          const weaponAttribs = $(elem).attr();
+          let wr = new ItemReferenceModel({ title: weaponAttribs.title, href: weaponAttribs.href })
+          weaponsList.push(wr);
+          wr.save();
+        }));
+      })
+      .catch(console.error);
 
-  return stats;
+    return weaponsList;
+  }
+
+  getOtherStats($: CHEERIO.CheerioAPI): Stat[] {
+
+    const weaponOtherStats = $('aside[role=region] > div');
+    let stats: Stat[] = [];
+
+    weaponOtherStats.each(((_, elem) => {
+      let statName = $(elem).attr('data-source');
+      let statValue = $(elem).find('div').contents().text();
+
+      if (statName != 'found' && statName != 'notes') {
+        let stat = new Stat(statName, statValue);
+        stats.push(stat);
+      }
+    }));
+
+    return stats;
+  }
+
+  getCoreStats($: CHEERIO.CheerioAPI): Stat[] {
+
+    const weaponCoreStats = $('aside > section > table > tbody td');
+    let stats: Stat[] = [];
+
+    weaponCoreStats.each(((_, elem) => {
+      let statName = $(elem).attr('data-source');
+      let statValue = $(elem).contents().text();
+      let stat = new Stat(statName, statValue);
+
+      stats.push(stat);
+    }));
+
+    return stats;
+  }
 }
