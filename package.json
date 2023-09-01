@@ -4,6 +4,7 @@
     "typescript": "^5.2.2"
   },
   "scripts": {
+    "exec": "ts-node src/index.ts",
     "start": "tsc && node dist/index.js",
     "dev": "nodemon -L --watch src/**/*.ts --exec ts-node src/index.ts"
   },

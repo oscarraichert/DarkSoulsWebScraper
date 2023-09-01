@@ -1,11 +1,10 @@
 import axios from "axios";
 import * as CHEERIO from 'cheerio';
-import { ItemReference } from "../models/item-reference.model";
 import { Stat } from "../models/stat.model";
 import { connect } from "mongoose";
-import { ItemReferenceModel } from "../database/schemas/item-reference.schema";
 import { Weapon } from "../models/weapon.model";
 import { WeaponModel } from "../database/schemas/weapon.schema";
+import { ItemReference } from "../models/item-reference.model";
 
 const AXIOS = axios.create();
 const URL = 'https://darksouls.fandom.com';
@@ -19,7 +18,7 @@ export class WeaponService {
 
   async getWeaponStats(): Promise<Weapon[]> {
 
-    const weaponList = await this.getWeaponsReferenceList();
+    const weaponList: ItemReference[] = await this.getWeaponsReferenceList();
     const weapons: Weapon[] = [];
 
     for (const item of weaponList) {
@@ -45,7 +44,7 @@ export class WeaponService {
     return weapons;
   }
 
-  async getWeaponsReferenceList(): Promise<ItemReference[]> {
+  private async getWeaponsReferenceList(): Promise<ItemReference[]> {
 
     const weaponsList: ItemReference[] = [];
 
@@ -57,9 +56,8 @@ export class WeaponService {
 
         weaponsTable.each(((_, elem) => {
           const weaponAttribs = $(elem).attr();
-          let wr = new ItemReferenceModel({ title: weaponAttribs.title, href: weaponAttribs.href })
+          let wr = new ItemReference(weaponAttribs.title, weaponAttribs.href)
           weaponsList.push(wr);
-          wr.save();
         }));
       })
       .catch(console.error);
@@ -67,7 +65,7 @@ export class WeaponService {
     return weaponsList;
   }
 
-  getOtherStats($: CHEERIO.CheerioAPI): Stat[] {
+  private getOtherStats($: CHEERIO.CheerioAPI): Stat[] {
 
     const weaponOtherStats = $('aside[role=region] > div');
     let stats: Stat[] = [];
@@ -85,7 +83,7 @@ export class WeaponService {
     return stats;
   }
 
-  getCoreStats($: CHEERIO.CheerioAPI): Stat[] {
+  private getCoreStats($: CHEERIO.CheerioAPI): Stat[] {
 
     const weaponCoreStats = $('aside > section > table > tbody td');
     let stats: Stat[] = [];
