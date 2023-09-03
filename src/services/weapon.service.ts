@@ -16,7 +16,7 @@ export class WeaponService {
     connect('mongodb://localhost:27017');
   }
 
-  async getWeaponStats(): Promise<Weapon[]> {
+  async getWeaponStats() {
 
     const weaponList: ItemReference[] = await this.getWeaponsReferenceList();
     const weapons: Weapon[] = [];
@@ -26,9 +26,8 @@ export class WeaponService {
       const weapon = await AXIOS.get(URL + item.href).then(response => {
         const html = response.data;
         const $ = CHEERIO.load(html);
-        const weaponName = $('aside > h2').contents().text();
 
-        let weapon = new WeaponModel({ name: weaponName });
+        let weapon = new WeaponModel({ name: item.title });
 
         weapon.stats.push(...this.getCoreStats($));
 

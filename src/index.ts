@@ -7,7 +7,7 @@ async function runScraper() {
   //const weaponsStats = await weaponService.getWeaponStats();
 
   const armorService = new ArmorService();
-  armorService.getUniqueArmorReference();
+  armorService.getArmor();
 
   const util = require('util');
   //console.log(util.inspect(weaponsStats, false, null, true));
