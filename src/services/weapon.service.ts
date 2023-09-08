@@ -43,6 +43,26 @@ export class WeaponService {
     return weapons;
   }
 
+  async getWikiDotWeapons() {
+
+    const weapons: Weapon[] = [];
+
+    const url = 'http://darksouls.wikidot.com/reinforcement-formulas';
+
+    await AXIOS.get(url).then(response => {
+
+      const html = response.data;
+      const $ = CHEERIO.load(html);
+      const weaponsTable = $('div[id="wiki-tabview-9d043cf45a4532fb2d0f4320c39e5909"] tr');
+
+      weaponsTable.each(((_, elem) => {
+
+        const values = $(elem).children().contents().toArray();
+        console.log(values);
+      }));
+    });
+  }
+
   private async getWeaponsReferenceList(): Promise<ItemReference[]> {
 
     const weaponsList: ItemReference[] = [];
