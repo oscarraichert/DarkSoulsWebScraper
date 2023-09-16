@@ -9,7 +9,7 @@ async function runScraper() {
   // const armorService = new ArmorService();
   // armorService.getArmor();
   //
-  weaponService.getWikiDotWeapons();
+  weaponService.getInitialWeaponStats();
   const util = require('util');
   //console.log(util.inspect(weaponsStats, false, null, true));
 }

@@ -7,7 +7,7 @@ import { WeaponModel } from "../database/schemas/weapon.schema";
 import { ItemReference } from "../models/item-reference.model";
 
 const AXIOS = axios.create();
-const URL = 'https://darksouls.fandom.com';
+const URL = 'http://darksouls.wikidot.com/reinforcement-formulas';
 const CATEGORY = '/wiki/Weapons_(Dark_Souls)'
 
 export class WeaponService {
@@ -16,105 +16,39 @@ export class WeaponService {
     connect('mongodb://localhost:27017');
   }
 
-  async getWeaponStats() {
-
-    const weaponList: ItemReference[] = await this.getWeaponsReferenceList();
-    const weapons: Weapon[] = [];
-
-    for (const item of weaponList) {
-
-      const weapon = await AXIOS.get(URL + item.href).then(response => {
-        const html = response.data;
-        const $ = CHEERIO.load(html);
-
-        let weapon = new WeaponModel({ name: item.title });
-
-        weapon.stats.push(...this.getCoreStats($));
-
-        weapon.stats.push(...this.getOtherStats($));
-
-        weapon.save();
-        return weapon;
-      });
-
-      weapons.push(weapon);
-    }
-
-    return weapons;
-  }
-
-  async getWikiDotWeapons() {
-
-    const weapons: Weapon[] = [];
-
-    const url = 'http://darksouls.wikidot.com/reinforcement-formulas';
-
-    await AXIOS.get(url).then(response => {
-
+  async getInitialWeaponStats() {
+    AXIOS.get(URL).then(response => {
       const html = response.data;
       const $ = CHEERIO.load(html);
-      const weaponsTable = $('div[id="wiki-tabview-9d043cf45a4532fb2d0f4320c39e5909"] tr');
+      const initialStatsRow = $('[id="wiki-tabview-9d043cf45a4532fb2d0f4320c39e5909"] [id="wiki-tab-0-0"] tr');
+      const weapons: Weapon[] = [];
 
-      weaponsTable.each(((_, elem) => {
+      let statsName = [];
+      let statsHeader = initialStatsRow.find('th').contents();
+      statsHeader.each((_, statName) => {
+        statsName.push($(statName).text());
+      });
 
-        const values = $(elem).children().contents().toArray();
-        console.log(values);
-      }));
-    });
-  }
+      initialStatsRow.each((_, tableRow) => {
+        let statsValue = $(tableRow).children();
 
-  private async getWeaponsReferenceList(): Promise<ItemReference[]> {
+        let stats: Stat[] = [];
+        statsValue.each((i, stat) => {
+          let statValue = $(stat).contents().text();
+          stats.push(new Stat(statsName[i], statValue));
+          //console.log(stats);
+        })
 
-    const weaponsList: ItemReference[] = [];
+        let weapon = new Weapon(stats[0].value);
+        weapon.stats.push(...stats);
 
-    await AXIOS.get(URL + CATEGORY).then(
-      response => {
-        const html = response.data;
-        const $ = CHEERIO.load(html);
-        const weaponsTable = $('table li > a');
+        if (weapon.name != 'Name') {
+          weapons.push(weapon);
+        }
 
-        weaponsTable.each(((_, elem) => {
-          const weaponAttribs = $(elem).attr();
-          let wr = new ItemReference(weaponAttribs.title, weaponAttribs.href)
-          weaponsList.push(wr);
-        }));
+        console.log(weapon);
       })
-      .catch(console.error);
 
-    return weaponsList;
-  }
-
-  private getOtherStats($: CHEERIO.CheerioAPI): Stat[] {
-
-    const weaponOtherStats = $('aside[role=region] > div');
-    let stats: Stat[] = [];
-
-    weaponOtherStats.each(((_, elem) => {
-      let statName = $(elem).attr('data-source');
-      let statValue = $(elem).find('div').contents().text();
-
-      if (statName != 'found' && statName != 'notes') {
-        let stat = new Stat(statName, statValue);
-        stats.push(stat);
-      }
-    }));
-
-    return stats;
-  }
-
-  private getCoreStats($: CHEERIO.CheerioAPI): Stat[] {
-
-    const weaponCoreStats = $('aside > section > table > tbody td');
-    let stats: Stat[] = [];
-
-    weaponCoreStats.each(((_, elem) => {
-      let statName = $(elem).attr('data-source');
-      let statValue = $(elem).contents().text();
-      let stat = new Stat(statName, statValue);
-
-      stats.push(stat);
-    }));
-
-    return stats;
+    });
   }
 }
