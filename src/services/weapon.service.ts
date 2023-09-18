@@ -7,8 +7,8 @@ import { WeaponModel } from "../database/schemas/weapon.schema";
 import { ItemReference } from "../models/item-reference.model";
 
 const AXIOS = axios.create();
-const URL = 'http://darksouls.wikidot.com/reinforcement-formulas';
-const CATEGORY = '/wiki/Weapons_(Dark_Souls)'
+const INITIAL_STATS_URL = 'http://darksouls.wikidot.com/reinforcement-formulas';
+const MAIN_URL = 'http://darksouls.wikidot.com/';
 
 export class WeaponService {
 
@@ -16,8 +16,21 @@ export class WeaponService {
     connect('mongodb://localhost:27017');
   }
 
+  normalize = [
+    ["Gr.", "Great"],
+    ["Ltng.", "Lightning"],
+    ["Crys.", "Crystal"],
+    ["Ench.", "Enchanted"],
+    ["Occ.", "Occult"],
+    ["Div.", "Divine"],
+    ["Ptg.", "Painting"],
+    ["Man-srp.", "Man-serpent"],
+    ["Silv.", "Silver"],
+    ["Str.", "Straight"]
+  ];
+
   async getInitialWeaponStats() {
-    AXIOS.get(URL).then(response => {
+    AXIOS.get(INITIAL_STATS_URL).then(response => {
       const html = response.data;
       const $ = CHEERIO.load(html);
       const initialStatsRow = $('[id="wiki-tabview-9d043cf45a4532fb2d0f4320c39e5909"] [id="wiki-tab-0-0"] tr');
@@ -36,7 +49,6 @@ export class WeaponService {
         statsValue.each((i, stat) => {
           let statValue = $(stat).contents().text();
           stats.push(new Stat(statsName[i], statValue));
-          //console.log(stats);
         })
 
         let weapon = new Weapon(stats[0].value);
@@ -45,9 +57,51 @@ export class WeaponService {
         if (weapon.name != 'Name') {
           weapons.push(weapon);
         }
+      });
 
-        console.log(weapon);
+      weapons.map(w => {
+        this.normalize.forEach(abbrev => {
+          if (w.name.includes(abbrev[0])) {
+            w.name = w.name.replace(abbrev[0], abbrev[1]);
+          }
+        })
       })
+
+      this.getOtherWeaponStats(weapons);
+
+    });
+  }
+
+  getOtherWeaponStats(weapons: Weapon[]) {
+
+    AXIOS.get(MAIN_URL + weapons[0].name).then(response => {
+      const html = response.data;
+      const $ = CHEERIO.load(html);
+      const statsTable = $('[style="align:left; border-collapse: collapse"] [class="wiki-content-table"]');
+
+      let statNames: string[] = [];
+      statsTable.find('th').map((_, sn) => {
+        let statName = $(sn).contents().text();
+        statNames.push(statName);
+      });
+
+      let statValues: string[] = [];
+      statsTable.find('td').map((_, sv) => {
+        let statValue = $(sv).contents().text();
+        statValues.push(statValue);
+      })
+
+      for (let i = 0; i < statNames.length - 1; i++) {
+        if (statNames[i] == 'Weight') {
+          let stat = new Stat(statNames[i], statValues[i]);
+          console.log(stat);
+        }
+
+        if (statNames[i] == 'Durability') {
+          let stat = new Stat(statNames[i], statValues[i]);
+          console.log(stat);
+        }
+      }
 
     });
   }
